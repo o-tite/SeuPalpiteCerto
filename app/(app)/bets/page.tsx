@@ -304,10 +304,7 @@ function MatchBetCard({
           </div>
 
           {/* Time visitante */}
-          <div className="flex-1 flex items-center gap-2 px-3 py-3 border-l border-border justify-end">
-            <span className="font-semibold text-foreground text-sm leading-tight text-right">
-              {match.away_team.name}
-            </span>
+          <div className="flex-1 flex items-center gap-2 px-3 py-3 border-l border-border">
             {match.away_team.logo_url ? (
               <img
                 src={match.away_team.logo_url}
@@ -319,6 +316,9 @@ function MatchBetCard({
                 {match.away_team.name.slice(0, 1)}
               </div>
             )}
+            <span className="font-semibold text-foreground text-sm leading-tight">
+              {match.away_team.name}
+            </span>
           </div>
         </div>
 
