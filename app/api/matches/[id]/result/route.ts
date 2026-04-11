@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { calcResultType, calcScore } from '@/lib/scoring'
+import { finishRoundIfAllMatchesFinished } from '@/lib/round'
 import { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -34,6 +35,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .single()
 
     if (dbError) return apiError(dbError.message, 500)
+
+    // Determine the round before updating the match
+    const { data: matchRow, error: matchError } = await supabase
+      .from('matches')
+      .select('round_id')
+      .eq('id', id)
+      .single()
+
+    if (matchError || !matchRow) return apiError('Jogo não encontrado', 404)
 
     // Update match status to finished
     await supabase
@@ -80,6 +90,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ipAddress: ip,
       userAgent,
     })
+
+    await finishRoundIfAllMatchesFinished(supabase, matchRow.round_id)
 
     return apiSuccess(result, 201)
   } catch {

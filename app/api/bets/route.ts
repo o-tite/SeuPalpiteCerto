@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, createAuditLog, getRequestMeta } from '@/lib/api'
+import { closeExpiredRound } from '@/lib/round'
 import { NextRequest } from 'next/server'
 
 // Save bets for a round
@@ -25,8 +26,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!round) return apiError('Rodada não encontrada', 404)
-    // Aceita palpites somente quando o status for 'open' — independente de closing_at
-    if (round.status !== 'open') {
+    const status = await closeExpiredRound(supabase, roundId, round.closing_at, round.status)
+    if (status !== 'open') {
       return apiError('Rodada encerrada — palpites não são mais aceitos', 403)
     }
 
@@ -92,6 +93,9 @@ export async function GET(request: NextRequest) {
     .single()
 
   if (!round) return apiError('Rodada não encontrada', 404)
+
+  const status = await closeExpiredRound(supabase, roundId, round.closing_at, round.status)
+  round.status = status
 
   const { data: matches } = await supabase
     .from('matches')

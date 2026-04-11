@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
+import { closeExpiredRounds } from '@/lib/round'
 import { NextRequest } from 'next/server'
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -8,7 +9,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params
 
   const supabase = createServiceClient()
-  const now = new Date().toISOString()
+  await closeExpiredRounds(supabase)
 
   const { data, error: dbError } = await supabase
     .from('rounds')
@@ -18,8 +19,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   if (dbError) return apiError(dbError.message, 500)
 
-  // A rodada aceita palpites somente quando status === 'open'
-  // closing_at é usado apenas para exibição — o fuso horário do Brazil é tratado no frontend
+  // A rodada aceita palpites somente quando status === 'open'.
+  // closing_at agora também direciona fechamento automático de rodadas abertas.
   const rounds = (data ?? []).map((r: { closing_at: string; status: string; [key: string]: unknown }) => ({
     ...r,
     isOpen: r.status === 'open',
