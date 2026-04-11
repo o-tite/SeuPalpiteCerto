@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!round) return apiError('Rodada não encontrada', 404)
-    if (new Date(round.closing_at) <= new Date()) {
+    // Aceita palpites somente quando o status for 'open' — independente de closing_at
+    if (round.status !== 'open') {
       return apiError('Rodada encerrada — palpites não são mais aceitos', 403)
     }
 
@@ -114,7 +115,8 @@ export async function GET(request: NextRequest) {
     betsByMatch[b.match_id] = b as typeof bets[0]
   })
 
-  const isOpen = new Date(round.closing_at) > new Date()
+  // Aceita palpites somente quando status === 'open'
+  const isOpen = round.status === 'open'
 
   return apiSuccess({
     round,

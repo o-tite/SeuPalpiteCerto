@@ -18,10 +18,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   if (dbError) return apiError(dbError.message, 500)
 
-  // Determine open/closed status based on closing_at
+  // A rodada aceita palpites somente quando status === 'open'
+  // closing_at é usado apenas para exibição — o fuso horário do Brazil é tratado no frontend
   const rounds = (data ?? []).map((r: { closing_at: string; status: string; [key: string]: unknown }) => ({
     ...r,
-    isOpen: new Date(r.closing_at) > new Date(now),
+    isOpen: r.status === 'open',
   }))
 
   return apiSuccess(rounds)

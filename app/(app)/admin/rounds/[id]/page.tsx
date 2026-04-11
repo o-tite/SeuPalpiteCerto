@@ -169,7 +169,11 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
             <p className="text-sm text-muted-foreground">{round.description}</p>
           )}
           <p className="text-xs text-muted-foreground mt-0.5">
-            Encerra: {round && new Date(round.closing_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+            Encerra: {round && new Intl.DateTimeFormat('pt-BR', {
+              timeZone: 'America/Sao_Paulo',
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }).format(new Date(round.closing_at))}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

@@ -133,7 +133,7 @@ function BetsContent() {
           <SelectContent>
             {rounds.map(r => (
               <SelectItem key={r.id} value={r.id}>
-                Rodada {r.round_number} {r.isOpen ? '(aberta)' : '(encerrada)'}
+                Rodada {r.round_number} {r.isOpen ? '— aberta' : r.status === 'finished' ? '— finalizada' : '— fechada'}
               </SelectItem>
             ))}
           </SelectContent>
@@ -166,13 +166,20 @@ function BetsContent() {
                 <>
                   <Clock className="w-4 h-4 text-primary" />
                   <span className="text-sm text-primary font-medium">
-                    Fecha {formatDistanceToNow(new Date(roundData.round.closing_at), { locale: ptBR, addSuffix: true })}
+                    Fecha em{' '}
+                    {new Intl.DateTimeFormat('pt-BR', {
+                      timeZone: 'America/Sao_Paulo',
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    }).format(new Date(roundData.round.closing_at))}
                   </span>
                 </>
               ) : (
                 <>
                   <Lock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Encerrada</span>
+                  <span className="text-sm text-muted-foreground">
+                    {roundData.round.status === 'finished' ? 'Finalizada' : 'Fechada'}
+                  </span>
                 </>
               )}
             </div>
