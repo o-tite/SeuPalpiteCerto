@@ -1,8 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { apiSuccess } from '@/lib/api'
+import { apiSuccess, clearSessionCookie, getSessionToken } from '@/lib/api'
+import { NextResponse } from 'next/server'
 
 export async function POST() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  return apiSuccess({ message: 'Logout realizado com sucesso' })
+  const token = await getSessionToken()
+  if (token) {
+    const supabase = await createClient()
+    await supabase.from('user_sessions').delete().eq('token', token)
+  }
+
+  const response = apiSuccess({ message: 'Sessão encerrada' }) as NextResponse
+  clearSessionCookie(response)
+  return response
 }

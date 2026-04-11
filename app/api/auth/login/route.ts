@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess, createAuditLog, getRequestMeta } from '@/lib/api'
-import { NextRequest } from 'next/server'
+import { apiError, apiSuccess, setSessionCookie, createAuditLog, getRequestMeta } from '@/lib/api'
+import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,62 +15,72 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    // Find user by email
+    const { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .single()
 
-    if (authError) {
+    if (!user) {
       return apiError('Email ou senha inválidos', 401)
     }
 
-    if (!authData.user) {
-      return apiError('Erro ao autenticar', 500)
-    }
-
-    // Check user status in our table
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single()
-
-    if (!dbUser) {
-      await supabase.auth.signOut()
-      return apiError('Usuário não encontrado', 404)
-    }
-
-    if (dbUser.status === 'pending') {
-      await supabase.auth.signOut()
+    if (user.status === 'pending') {
       return apiError('Sua conta está pendente de aprovação pelo administrador', 403)
     }
-
-    if (dbUser.status === 'blocked' || dbUser.status === 'inactive') {
-      await supabase.auth.signOut()
+    if (user.status === 'blocked' || user.status === 'inactive') {
       return apiError('Sua conta está bloqueada ou inativa', 403)
+    }
+
+    // Verify password
+    const valid = await bcrypt.compare(password, user.password_hash)
+    if (!valid) {
+      return apiError('Email ou senha inválidos', 401)
+    }
+
+    // Enforce single session per user: delete existing session
+    await supabase.from('user_sessions').delete().eq('user_id', user.id)
+
+    // Create new session token
+    const token = crypto.randomBytes(48).toString('hex')
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+    const { error: sessionError } = await supabase.from('user_sessions').insert({
+      user_id: user.id,
+      token,
+      expires_at: expiresAt.toISOString(),
+    })
+
+    if (sessionError) {
+      return apiError('Erro ao criar sessão', 500)
     }
 
     const { ip, userAgent } = getRequestMeta(request)
     await createAuditLog({
-      userId: dbUser.id,
+      userId: user.id,
       action: 'USER_LOGIN',
       entityType: 'users',
-      entityId: dbUser.id,
+      entityId: user.id,
       ipAddress: ip,
       userAgent,
     })
 
-    return apiSuccess({
+    const response = apiSuccess({
       user: {
-        id: dbUser.id,
-        email: dbUser.email,
-        nickname: dbUser.nickname,
-        role: dbUser.role,
-        status: dbUser.status,
-        photoUrl: dbUser.photo_url,
+        id: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        role: user.role,
+        status: user.status,
+        photo_url: user.photo_url,
       },
-    })
+    }) as NextResponse
+
+    setSessionCookie(response, token)
+    return response
   } catch (err) {
+    console.error('[v0] Login error:', err)
     return apiError('Erro interno do servidor', 500)
   }
 }

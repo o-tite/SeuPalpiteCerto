@@ -1,48 +1,36 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+
+const SESSION_COOKIE = 'bolao_session'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Refresh session on every request
-  let supabaseResponse = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
   const publicRoutes = ['/login', '/register', '/auth/callback', '/auth/error']
   const isPublicRoute = publicRoutes.some((r) => pathname.startsWith(r))
+  const isApiRoute = pathname.startsWith('/api/')
+
+  // Skip middleware for API routes (they do their own auth)
+  if (isApiRoute) return NextResponse.next()
+
+  const sessionToken = request.cookies.get(SESSION_COOKIE)?.value
 
   // Root redirect
   if (pathname === '/') {
-    if (user) return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (sessionToken) return NextResponse.redirect(new URL('/dashboard', request.url))
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Protect non-public routes
-  if (!isPublicRoute && !user) {
+  if (!isPublicRoute && !sessionToken) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return supabaseResponse
+  // Redirect logged-in users away from login/register
+  if (isPublicRoute && sessionToken && pathname !== '/auth/callback') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {

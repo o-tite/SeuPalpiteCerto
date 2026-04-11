@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
 
 export function apiError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status })
@@ -9,30 +10,46 @@ export function apiSuccess(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
 }
 
-export async function getAuthUser() {
-  const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return null
-  return user
+const SESSION_COOKIE = 'bolao_session'
+const SESSION_TTL_HOURS = 24 * 7 // 7 days
+
+export async function getSessionToken(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return cookieStore.get(SESSION_COOKIE)?.value ?? null
 }
 
-export async function getDbUser(userId: string) {
+export async function getAuthUser() {
+  const token = await getSessionToken()
+  if (!token) return null
+
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data: session } = await supabase
+    .from('user_sessions')
+    .select('user_id, expires_at')
+    .eq('token', token)
+    .single()
+
+  if (!session) return null
+  if (new Date(session.expires_at) < new Date()) {
+    // Expired: remove session
+    await supabase.from('user_sessions').delete().eq('token', token)
+    return null
+  }
+
+  const { data: user } = await supabase
     .from('users')
     .select('*')
-    .eq('id', userId)
+    .eq('id', session.user_id)
     .single()
-  return data
+
+  return user ?? null
 }
 
 export async function requireAuth() {
   const user = await getAuthUser()
   if (!user) return { user: null, error: apiError('Não autorizado', 401) }
-  const dbUser = await getDbUser(user.id)
-  if (!dbUser) return { user: null, error: apiError('Usuário não encontrado', 404) }
-  if (dbUser.status !== 'active') return { user: null, error: apiError('Conta inativa ou pendente de aprovação', 403) }
-  return { user: dbUser, error: null }
+  if (user.status !== 'active') return { user: null, error: apiError('Conta inativa ou pendente de aprovação', 403) }
+  return { user, error: null }
 }
 
 export async function requireAdmin() {
@@ -40,6 +57,24 @@ export async function requireAdmin() {
   if (error) return { user: null, error }
   if (user!.role !== 'admin') return { user: null, error: apiError('Acesso negado — apenas administradores', 403) }
   return { user, error: null }
+}
+
+export function setSessionCookie(response: NextResponse, token: string) {
+  response.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * SESSION_TTL_HOURS,
+    path: '/',
+  })
+}
+
+export function clearSessionCookie(response: NextResponse) {
+  response.cookies.set(SESSION_COOKIE, '', {
+    httpOnly: true,
+    maxAge: 0,
+    path: '/',
+  })
 }
 
 export async function createAuditLog({
@@ -71,11 +106,11 @@ export async function createAuditLog({
   })
 }
 
-export function getRequestMeta(request: Request) {
+export function getRequestMeta(request: NextRequest | Request) {
   const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0] ??
-    request.headers.get('x-real-ip') ??
+    (request.headers as Headers).get('x-forwarded-for')?.split(',')[0] ??
+    (request.headers as Headers).get('x-real-ip') ??
     'unknown'
-  const userAgent = request.headers.get('user-agent') ?? 'unknown'
+  const userAgent = (request.headers as Headers).get('user-agent') ?? 'unknown'
   return { ip, userAgent }
 }
