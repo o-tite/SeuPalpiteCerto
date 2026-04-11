@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
+import { closeExpiredRound } from '@/lib/round'
 import { NextRequest } from 'next/server'
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,8 +26,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
   if (dbError || !data) return apiError('Rodada não encontrada', 404)
 
-  const now = new Date()
-  return apiSuccess({ ...data, isOpen: new Date(data.closing_at) > now })
+  const status = await closeExpiredRound(supabase, data.id, data.closing_at, data.status)
+  return apiSuccess({ ...data, status, isOpen: status === 'open' })
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
