@@ -2,6 +2,22 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAdmin } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
+// List enrolled users in a championship
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { error } = await requireAdmin()
+  if (error) return error
+  const { id } = await params
+
+  const supabase = createServiceClient()
+  const { data, error: dbError } = await supabase
+    .from('user_championships')
+    .select('user_id')
+    .eq('championship_id', id)
+
+  if (dbError) return apiError(dbError.message, 500)
+  return apiSuccess(data ?? [])
+}
+
 // Admin enroll users into a championship
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { user, error } = await requireAdmin()

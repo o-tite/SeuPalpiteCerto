@@ -47,16 +47,18 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
   const [error, setError] = useState('')
 
   const load = async () => {
-    const [cRes, rRes, tRes, uRes] = await Promise.all([
+    const [cRes, rRes, tRes, uRes, eRes] = await Promise.all([
       fetch(`/api/championships/${id}`),
       fetch(`/api/championships/${id}/rounds`),
       fetch(`/api/championships/${id}/teams`),
       fetch(`/api/admin/users`),
+      fetch(`/api/championships/${id}/enroll`),
     ])
     if (cRes.ok) setChampionship(await cRes.json())
     if (rRes.ok) setRounds(await rRes.json())
     if (tRes.ok) setTeams(await tRes.json())
     if (uRes.ok) setAllUsers(await uRes.json())
+    if (eRes.ok) setEnrolledUsers(await eRes.json())
     setLoading(false)
   }
 
@@ -124,7 +126,7 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
         <TabsList className="bg-secondary">
           <TabsTrigger value="rounds">Rodadas ({rounds.length})</TabsTrigger>
           <TabsTrigger value="teams">Times ({teams.length})</TabsTrigger>
-          <TabsTrigger value="participants">Participantes</TabsTrigger>
+          <TabsTrigger value="participants">Participantes ({enrolledUsers.length})</TabsTrigger>
         </TabsList>
 
         {/* Rounds */}
@@ -191,28 +193,44 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
 
         {/* Participants */}
         <TabsContent value="participants" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            {allUsers.filter(u => u.status === 'active').map(u => {
-              const isEnrolled = enrolledUsers.some(e => e.user_id === u.id)
-              return (
-                <Card key={u.id} className="border-border">
-                  <CardContent className="p-3 flex items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium text-sm text-foreground">{u.nickname || u.email}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant={isEnrolled ? 'destructive' : 'outline'}
-                      onClick={() => isEnrolled ? handleUnenrollUser(u.id) : handleEnrollUser(u.id)}
-                    >
-                      {isEnrolled ? 'Remover' : 'Adicionar'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Adicione ou remova participantes ativos neste campeonato. Somente usuários com status <strong className="text-foreground">Ativo</strong> aparecem na lista.
+          </p>
+          {allUsers.filter(u => u.status === 'active').length === 0 ? (
+            <Card className="border-border">
+              <CardContent className="py-10 text-center">
+                <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhum usuário ativo no sistema ainda.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {allUsers.filter(u => u.status === 'active').map(u => {
+                const isEnrolled = enrolledUsers.some(e => e.user_id === u.id)
+                return (
+                  <Card key={u.id} className={`border transition-colors ${isEnrolled ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
+                    <CardContent className="p-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${isEnrolled ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm text-foreground truncate">{u.nickname || u.email}</p>
+                          <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={isEnrolled ? 'destructive' : 'outline'}
+                        className="shrink-0"
+                        onClick={() => isEnrolled ? handleUnenrollUser(u.id) : handleEnrollUser(u.id)}
+                      >
+                        {isEnrolled ? 'Remover' : 'Adicionar'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
