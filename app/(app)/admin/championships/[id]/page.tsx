@@ -41,9 +41,15 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
   const [showRound, setShowRound] = useState(false)
   const [editRound, setEditRound] = useState<Round | null>(null)
   const [roundForm, setRoundForm] = useState({ roundNumber: '', description: '', closingAt: '' })
-  // Team form
+  // Team form — criar
   const [showTeam, setShowTeam] = useState(false)
   const [teamForm, setTeamForm] = useState({ name: '', logoUrl: '' })
+  // Team form — editar
+  const [editTeam, setEditTeam] = useState<Team | null>(null)
+  const [editTeamForm, setEditTeamForm] = useState({ name: '', logoUrl: '' })
+  const [editTeamSaving, setEditTeamSaving] = useState(false)
+  const [editTeamError, setEditTeamError] = useState('')
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -92,6 +98,27 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
     const data = await res.json()
     if (!res.ok) { setError(data.error); setSaving(false); return }
     setShowTeam(false); setTeamForm({ name: '', logoUrl: '' }); load(); setSaving(false)
+  }
+
+  const openEditTeam = (t: Team) => {
+    setEditTeam(t)
+    setEditTeamForm({ name: t.name, logoUrl: t.logo_url ?? '' })
+    setEditTeamError('')
+  }
+
+  const handleSaveTeam = async () => {
+    if (!editTeam) return
+    setEditTeamSaving(true); setEditTeamError('')
+    const res = await fetch(`/api/teams/${editTeam.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editTeamForm.name, logoUrl: editTeamForm.logoUrl }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setEditTeamError(data.error ?? 'Erro ao salvar'); setEditTeamSaving(false); return }
+    setEditTeam(null)
+    setEditTeamSaving(false)
+    load()
   }
 
   const handleEnrollUser = async (userId: string) => {
@@ -182,8 +209,8 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {teams.map(t => (
-                <Card key={t.id} className="border-border">
-                  <CardContent className="p-3 flex flex-col items-center gap-2 text-center">
+                <Card key={t.id} className="border-border group">
+                  <CardContent className="p-3 flex flex-col items-center gap-2 text-center relative">
                     {t.logo_url ? (
                       <img src={t.logo_url} alt={t.name} className="w-12 h-12 object-contain rounded" />
                     ) : (
@@ -192,6 +219,15 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
                       </div>
                     )}
                     <p className="font-medium text-sm text-foreground leading-tight">{t.name}</p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="absolute top-1.5 right-1.5 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => openEditTeam(t)}
+                      aria-label={`Editar ${t.name}`}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -296,6 +332,40 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
             <Button variant="ghost" onClick={() => setShowTeam(false)}>Cancelar</Button>
             <Button onClick={handleCreateTeam} disabled={saving || !teamForm.name}>
               {saving ? 'Criando...' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Team dialog */}
+      <Dialog open={!!editTeam} onOpenChange={v => { if (!v) { setEditTeam(null); setEditTeamError('') } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Time</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            {editTeamError && <p className="text-sm text-destructive">{editTeamError}</p>}
+            <div className="space-y-1.5">
+              <Label>Nome do time</Label>
+              <Input
+                value={editTeamForm.name}
+                onChange={e => setEditTeamForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Ex: Flamengo"
+              />
+            </div>
+            <div className="flex flex-col items-center gap-1.5">
+              <Label className="self-start">Escudo do time <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <ImageUpload
+                value={editTeamForm.logoUrl || null}
+                onChange={url => setEditTeamForm(f => ({ ...f, logoUrl: url ?? '' }))}
+                folder="teams"
+                shape="square"
+                size="md"
+                placeholder="Escudo"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditTeam(null)} disabled={editTeamSaving}>Cancelar</Button>
+            <Button onClick={handleSaveTeam} disabled={editTeamSaving || !editTeamForm.name.trim()}>
+              {editTeamSaving ? 'Salvando...' : 'Salvar alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>
