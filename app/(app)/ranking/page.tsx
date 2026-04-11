@@ -120,8 +120,8 @@ function RankingContent() {
             <Card className="border-border">
               <CardContent className="py-16 flex flex-col items-center gap-3 text-center">
                 <Trophy className="w-10 h-10 text-muted-foreground/30" />
-                <p className="font-medium text-foreground">Sem dados de ranking ainda</p>
-                <p className="text-sm text-muted-foreground">Os dados aparecerão quando houver resultados registrados</p>
+                <p className="font-medium text-foreground">Nenhum participante inscrito</p>
+                <p className="text-sm text-muted-foreground">O ranking será exibido assim que participantes forem adicionados ao campeonato</p>
               </CardContent>
             </Card>
           ) : (
