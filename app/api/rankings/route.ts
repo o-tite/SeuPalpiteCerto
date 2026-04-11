@@ -16,9 +16,12 @@ export async function GET(request: NextRequest) {
   async function getEnrolledUsers(champId: string) {
     const { data } = await supabase
       .from('user_championships')
-      .select('user:users(id, nickname, photo_url)')
+      .select('user_id, users(id, nickname, photo_url)')
       .eq('championship_id', champId)
-    return (data ?? []).map((row: { user: { id: string; nickname: string; photo_url: string } }) => row.user)
+    return (data ?? []).map((row: { user_id: string; users: { id: string; nickname: string; photo_url: string } | { id: string; nickname: string; photo_url: string }[] | null }) => {
+      const u = Array.isArray(row.users) ? row.users[0] : row.users
+      return u ?? { id: row.user_id, nickname: 'Usuário', photo_url: null }
+    }).filter(Boolean) as { id: string; nickname: string; photo_url: string }[]
   }
 
   if (roundId) {
@@ -74,16 +77,20 @@ export async function GET(request: NextRequest) {
 
     // Acumula pontos de quem tem palpites
     ;(bets ?? []).forEach((b: {
-      user: { id: string; nickname: string; photo_url: string }
-      score?: { points: number; exact_match: boolean }
+      user_id: string
+      user: { id: string; nickname: string; photo_url: string } | { id: string; nickname: string; photo_url: string }[] | null
+      score?: { points: number; exact_match: boolean } | { points: number; exact_match: boolean }[] | null
       [key: string]: unknown
     }) => {
-      const uid = b.user.id
+      const userRaw = Array.isArray(b.user) ? b.user[0] : b.user
+      if (!userRaw) return
+      const scoreRaw = Array.isArray(b.score) ? b.score[0] : b.score
+      const uid = userRaw.id
       if (!userMap[uid]) {
-        userMap[uid] = { user: b.user, totalPoints: 0, exactMatches: 0, bets: [] }
+        userMap[uid] = { user: userRaw, totalPoints: 0, exactMatches: 0, bets: [] }
       }
-      userMap[uid].totalPoints += b.score?.points ?? 0
-      if (b.score?.exact_match) userMap[uid].exactMatches++
+      userMap[uid].totalPoints += scoreRaw?.points ?? 0
+      if (scoreRaw?.exact_match) userMap[uid].exactMatches++
       userMap[uid].bets.push(b)
     })
 
@@ -143,15 +150,19 @@ export async function GET(request: NextRequest) {
 
     // Acumula pontos de quem tem palpites
     ;(bets ?? []).forEach((b: {
-      user: { id: string; nickname: string; photo_url: string }
-      score?: { points: number; exact_match: boolean }
+      user_id: string
+      user: { id: string; nickname: string; photo_url: string } | { id: string; nickname: string; photo_url: string }[] | null
+      score?: { points: number; exact_match: boolean } | { points: number; exact_match: boolean }[] | null
     }) => {
-      const uid = b.user.id
+      const userRaw = Array.isArray(b.user) ? b.user[0] : b.user
+      if (!userRaw) return
+      const scoreRaw = Array.isArray(b.score) ? b.score[0] : b.score
+      const uid = userRaw.id
       if (!userMap[uid]) {
-        userMap[uid] = { user: b.user, totalPoints: 0, exactMatches: 0 }
+        userMap[uid] = { user: userRaw, totalPoints: 0, exactMatches: 0 }
       }
-      userMap[uid].totalPoints += b.score?.points ?? 0
-      if (b.score?.exact_match) userMap[uid].exactMatches++
+      userMap[uid].totalPoints += scoreRaw?.points ?? 0
+      if (scoreRaw?.exact_match) userMap[uid].exactMatches++
     })
 
     const rankings = Object.values(userMap)
