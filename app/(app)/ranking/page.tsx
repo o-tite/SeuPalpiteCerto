@@ -63,11 +63,11 @@ function positionIcon(pos: number) {
 
 // ─── subcomponents ──────────────────────────────────────────────────────────
 
-function RankingRow({ entry, isMe, hasRoundBets }: { entry: UserEntry; isMe: boolean; hasRoundBets: boolean }) {
+function RankingRow({ entry, isMe, canViewBets }: { entry: UserEntry; isMe: boolean; canViewBets: boolean }) {
   const [open, setOpen] = useState(false)
   const initials = entry.user.nickname?.slice(0, 2).toUpperCase() ?? '??'
-  // Permite expandir sempre que estiver em visualização de rodada específica
-  const canExpand = hasRoundBets
+  // Permite expandir somente se a rodada estiver fechada (canViewBets = true)
+  const canExpand = canViewBets
   const hasBets = (entry.bets?.length ?? 0) > 0
 
   return (
@@ -208,7 +208,7 @@ function RankingContent() {
   const [rounds, setRounds] = useState<Round[]>([])
   const [selectedChampionship, setSelectedChampionship] = useState(searchParams.get('championshipId') ?? '')
   const [selectedRound, setSelectedRound] = useState(ALL_ROUNDS)
-  const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; championship?: Championship; round?: Round } | null>(null)
+  const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; championship?: Championship; round?: Round; canViewBets?: boolean } | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -238,7 +238,8 @@ function RankingContent() {
       .finally(() => setLoading(false))
   }, [selectedChampionship, selectedRound])
 
-  const hasRoundBets = selectedRound !== ALL_ROUNDS
+  // Só permite ver palpites se for uma rodada específica E a rodada estiver fechada
+  const canViewBets = selectedRound !== ALL_ROUNDS && (rankingData?.canViewBets ?? false)
 
   return (
     <div className="space-y-4">
@@ -292,7 +293,7 @@ function RankingContent() {
                : (rankingData.round?.championship as { name?: string } | undefined)?.name) ??
              ''}
           </span>
-          {hasRoundBets && rankingData.round && (
+          {selectedRound !== ALL_ROUNDS && rankingData.round && (
             <>
               <span className="text-muted-foreground">·</span>
               <span className="text-sm text-muted-foreground">Rodada {rankingData.round?.round_number}</span>
@@ -344,7 +345,7 @@ function RankingContent() {
               key={entry.user.id}
               entry={entry}
               isMe={entry.user.id === user?.id}
-              hasRoundBets={hasRoundBets}
+              canViewBets={canViewBets}
             />
           ))}
         </div>
