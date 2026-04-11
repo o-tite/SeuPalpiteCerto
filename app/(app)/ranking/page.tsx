@@ -63,12 +63,10 @@ function positionIcon(pos: number) {
 
 // ─── subcomponents ──────────────────────────────────────────────────────────
 
-function RankingRow({ entry, isMe, canViewBets }: { entry: UserEntry; isMe: boolean; canViewBets: boolean }) {
+function RankingRow({ entry, isMe, hasRoundBets }: { entry: UserEntry; isMe: boolean; hasRoundBets: boolean }) {
   const [open, setOpen] = useState(false)
   const initials = entry.user.nickname?.slice(0, 2).toUpperCase() ?? '??'
-  // Permite expandir somente se a rodada estiver fechada (canViewBets = true)
-  const canExpand = canViewBets
-  const hasBets = (entry.bets?.length ?? 0) > 0
+  const canExpand = hasRoundBets && (entry.bets?.length ?? 0) > 0
 
   return (
     <div className="rounded-xl border overflow-hidden transition-colors"
@@ -87,7 +85,7 @@ function RankingRow({ entry, isMe, canViewBets }: { entry: UserEntry; isMe: bool
         className={cn(
           'flex items-center gap-3 px-4 py-3',
           isMe && 'bg-primary/5',
-          canExpand && 'cursor-pointer select-none hover:bg-secondary/50 transition-colors'
+          canExpand && 'cursor-pointer select-none'
         )}
         onClick={() => canExpand && setOpen(v => !v)}
       >
@@ -139,15 +137,12 @@ function RankingRow({ entry, isMe, canViewBets }: { entry: UserEntry; isMe: bool
       </div>
 
       {/* Expanded bets */}
-      {open && canExpand && (
+      {open && entry.bets && entry.bets.length > 0 && (
         <div className="border-t border-border bg-secondary/30 px-4 py-3 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Palpites desta rodada
           </p>
-          {!hasBets && (
-            <p className="text-sm text-muted-foreground py-2">Nenhum palpite registrado nesta rodada</p>
-          )}
-          {entry.bets?.map((bet, i) => {
+          {entry.bets.map((bet, i) => {
             const scoreRaw = Array.isArray(bet.score) ? bet.score[0] : bet.score
             const resultRaw = Array.isArray(bet.match?.result) ? bet.match.result[0] : bet.match?.result
             const matchRaw = Array.isArray(bet.match) ? bet.match[0] : bet.match
@@ -208,7 +203,7 @@ function RankingContent() {
   const [rounds, setRounds] = useState<Round[]>([])
   const [selectedChampionship, setSelectedChampionship] = useState(searchParams.get('championshipId') ?? '')
   const [selectedRound, setSelectedRound] = useState(ALL_ROUNDS)
-  const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; championship?: Championship; round?: Round; canViewBets?: boolean } | null>(null)
+  const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; championship?: Championship; round?: Round } | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -238,8 +233,7 @@ function RankingContent() {
       .finally(() => setLoading(false))
   }, [selectedChampionship, selectedRound])
 
-  // Só permite ver palpites se for uma rodada específica E a rodada estiver fechada
-  const canViewBets = selectedRound !== ALL_ROUNDS && (rankingData?.canViewBets ?? false)
+  const hasRoundBets = selectedRound !== ALL_ROUNDS
 
   return (
     <div className="space-y-4">
@@ -293,7 +287,7 @@ function RankingContent() {
                : (rankingData.round?.championship as { name?: string } | undefined)?.name) ??
              ''}
           </span>
-          {selectedRound !== ALL_ROUNDS && rankingData.round && (
+          {hasRoundBets && rankingData.round && (
             <>
               <span className="text-muted-foreground">·</span>
               <span className="text-sm text-muted-foreground">Rodada {rankingData.round?.round_number}</span>
@@ -345,7 +339,7 @@ function RankingContent() {
               key={entry.user.id}
               entry={entry}
               isMe={entry.user.id === user?.id}
-              canViewBets={canViewBets}
+              hasRoundBets={hasRoundBets}
             />
           ))}
         </div>

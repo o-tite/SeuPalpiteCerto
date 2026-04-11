@@ -94,21 +94,11 @@ export async function GET(request: NextRequest) {
       userMap[uid].bets.push(b)
     })
 
-    // Se a rodada ainda está aberta, não revelar palpites de outros participantes
-    const isRoundOpen = round.status === 'open'
-
     const rankings = Object.values(userMap)
       .sort((a, b) => b.totalPoints - a.totalPoints || b.exactMatches - a.exactMatches)
-      .map((entry, i) => ({
-        position: i + 1,
-        user: entry.user,
-        totalPoints: entry.totalPoints,
-        exactMatches: entry.exactMatches,
-        // Só inclui bets detalhados se a rodada estiver fechada
-        ...(isRoundOpen ? {} : { bets: entry.bets }),
-      }))
+      .map((entry, i) => ({ position: i + 1, ...entry }))
 
-    return apiSuccess({ round, rankings, canViewBets: !isRoundOpen })
+    return apiSuccess({ round, rankings })
   }
 
   if (championshipId) {
