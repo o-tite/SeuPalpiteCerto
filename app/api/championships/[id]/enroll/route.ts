@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAdmin } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return apiError('userIds deve ser um array não vazio')
     }
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const rows = userIds.map((uid: string) => ({
       user_id: uid,
       championship_id: id,
@@ -43,7 +43,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const userId = url.searchParams.get('userId')
   if (!userId) return apiError('userId é obrigatório')
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error: dbError } = await supabase
     .from('user_championships')
     .delete()

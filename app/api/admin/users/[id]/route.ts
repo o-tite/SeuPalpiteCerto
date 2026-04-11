@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -21,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (role) updates.role = role
     if (nickname) updates.nickname = nickname
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('users')
       .update(updates)

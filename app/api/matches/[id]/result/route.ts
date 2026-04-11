@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { calcResultType, calcScore } from '@/lib/scoring'
 import { NextRequest } from 'next/server'
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     if (homeScore < 0 || awayScore < 0) return apiError('Placar não pode ser negativo')
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const resultType = calcResultType(homeScore, awayScore)
 
     // Upsert result

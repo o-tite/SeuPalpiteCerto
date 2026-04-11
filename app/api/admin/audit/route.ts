@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAdmin } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10), 100)
   const offset = (page - 1) * limit
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   let query = supabase
     .from('audit_logs')

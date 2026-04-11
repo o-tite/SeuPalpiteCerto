@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 
@@ -22,7 +22,7 @@ export async function getAuthUser() {
   const token = await getSessionToken()
   if (!token) return null
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data: session } = await supabase
     .from('user_sessions')
     .select('user_id, expires_at')
@@ -31,7 +31,6 @@ export async function getAuthUser() {
 
   if (!session) return null
   if (new Date(session.expires_at) < new Date()) {
-    // Expired: remove session
     await supabase.from('user_sessions').delete().eq('token', token)
     return null
   }
@@ -94,7 +93,7 @@ export async function createAuditLog({
   ipAddress?: string
   userAgent?: string
 }) {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   await supabase.from('audit_logs').insert({
     user_id: userId,
     action,

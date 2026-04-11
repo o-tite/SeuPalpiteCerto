@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -7,7 +7,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (error) return error
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error: dbError } = await supabase
     .from('rounds')
     .select(`
@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json()
     const { description, closingAt, status } = body
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('rounds')
       .update({ description, closing_at: closingAt, status, updated_at: new Date().toISOString() })
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (error) return error
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error: dbError } = await supabase.from('rounds').delete().eq('id', id)
   if (dbError) return apiError(dbError.message, 500)
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -7,7 +7,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (error) return error
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error: dbError } = await supabase
     .from('teams')
     .select('*')
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { name, logoUrl } = body
     if (!name) return apiError('Nome do time é obrigatório')
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('teams')
       .insert({ name, championship_id: id, logo_url: logoUrl })

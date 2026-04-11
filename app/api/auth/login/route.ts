@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, setSessionCookie, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return apiError('Email e senha são obrigatórios')
     }
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     // Find user by email
     const { data: user } = await supabase

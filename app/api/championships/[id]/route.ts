@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -7,7 +7,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (error) return error
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error: dbError } = await supabase
     .from('championships')
     .select(`*, created_by_user:users!championships_created_by_fkey(id, nickname, email)`)
@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const body = await request.json()
     const { name, description, status } = body
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('championships')
       .update({ name, description, status, updated_at: new Date().toISOString() })
@@ -59,7 +59,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (error) return error
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { error: dbError } = await supabase.from('championships').delete().eq('id', id)
   if (dbError) return apiError(dbError.message, 500)
 

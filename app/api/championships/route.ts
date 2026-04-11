@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -6,7 +6,7 @@ export async function GET() {
   const { user, error } = await requireAuth()
   if (error) return error
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   let query = supabase
     .from('championships')
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { name, description, status } = body
     if (!name) return apiError('Nome é obrigatório')
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('championships')
       .insert({ name, description, status: status || 'active', created_by: user!.id })

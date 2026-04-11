@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest) {
     if (nickname !== undefined) updates.nickname = nickname
     if (photoUrl !== undefined) updates.photo_url = photoUrl
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('users')
       .update(updates)

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const championshipId = url.searchParams.get('championshipId')
   const roundId = url.searchParams.get('roundId')
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   if (roundId) {
     // Ranking for a specific round

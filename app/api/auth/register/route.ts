@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return apiError('Senha deve ter pelo menos 6 caracteres')
     }
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     // Check if email already exists
     const { data: existing } = await supabase

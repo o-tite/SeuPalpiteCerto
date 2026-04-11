@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return apiError('roundId e bets são obrigatórios')
     }
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     // Check round is still open
     const { data: round } = await supabase
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
   const roundId = url.searchParams.get('roundId')
   if (!roundId) return apiError('roundId é obrigatório')
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data: round } = await supabase
     .from('rounds')
     .select('*, championship:championships(id, name)')

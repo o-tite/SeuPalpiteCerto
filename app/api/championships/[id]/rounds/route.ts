@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth, requireAdmin, createAuditLog, getRequestMeta } from '@/lib/api'
 import { NextRequest } from 'next/server'
 
@@ -7,7 +7,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   if (error) return error
   const { id } = await params
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const now = new Date().toISOString()
 
   const { data, error: dbError } = await supabase
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { roundNumber, description, closingAt } = body
     if (!roundNumber || !closingAt) return apiError('Número e data de fechamento são obrigatórios')
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     const { data, error: dbError } = await supabase
       .from('rounds')
       .insert({
