@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _inter = Inter({ subsets: ['latin'], variable: '--font-body' })
-const _spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-heading' })
+const _montserrat = Montserrat({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
   title: 'Bolao App — Palpites Esportivos',
