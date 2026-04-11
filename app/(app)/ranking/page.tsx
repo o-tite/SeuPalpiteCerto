@@ -66,7 +66,9 @@ function positionIcon(pos: number) {
 function RankingRow({ entry, isMe, hasRoundBets }: { entry: UserEntry; isMe: boolean; hasRoundBets: boolean }) {
   const [open, setOpen] = useState(false)
   const initials = entry.user.nickname?.slice(0, 2).toUpperCase() ?? '??'
-  const canExpand = hasRoundBets && (entry.bets?.length ?? 0) > 0
+  // Permite expandir sempre que estiver em visualização de rodada específica
+  const canExpand = hasRoundBets
+  const hasBets = (entry.bets?.length ?? 0) > 0
 
   return (
     <div className="rounded-xl border overflow-hidden transition-colors"
@@ -85,7 +87,7 @@ function RankingRow({ entry, isMe, hasRoundBets }: { entry: UserEntry; isMe: boo
         className={cn(
           'flex items-center gap-3 px-4 py-3',
           isMe && 'bg-primary/5',
-          canExpand && 'cursor-pointer select-none'
+          canExpand && 'cursor-pointer select-none hover:bg-secondary/50 transition-colors'
         )}
         onClick={() => canExpand && setOpen(v => !v)}
       >
@@ -137,12 +139,15 @@ function RankingRow({ entry, isMe, hasRoundBets }: { entry: UserEntry; isMe: boo
       </div>
 
       {/* Expanded bets */}
-      {open && entry.bets && entry.bets.length > 0 && (
+      {open && canExpand && (
         <div className="border-t border-border bg-secondary/30 px-4 py-3 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Palpites desta rodada
           </p>
-          {entry.bets.map((bet, i) => {
+          {!hasBets && (
+            <p className="text-sm text-muted-foreground py-2">Nenhum palpite registrado nesta rodada</p>
+          )}
+          {entry.bets?.map((bet, i) => {
             const scoreRaw = Array.isArray(bet.score) ? bet.score[0] : bet.score
             const resultRaw = Array.isArray(bet.match?.result) ? bet.match.result[0] : bet.match?.result
             const matchRaw = Array.isArray(bet.match) ? bet.match[0] : bet.match
