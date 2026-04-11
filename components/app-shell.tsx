@@ -46,6 +46,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  // Redireciona para login se o carregamento terminar sem usuário autenticado
+  if (!loading && !user) {
+    router.replace('/login')
+    return null
+  }
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
