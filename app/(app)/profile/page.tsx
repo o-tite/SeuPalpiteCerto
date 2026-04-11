@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle, AlertCircle } from 'lucide-react'
+import { ImageUpload } from '@/components/image-upload'
 
 export default function ProfilePage() {
   const { user, refresh } = useAuth()
@@ -100,10 +101,10 @@ export default function ProfilePage() {
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="text-base">Editar informações</CardTitle>
-          <CardDescription>Atualize seu apelido e URL da foto de perfil</CardDescription>
+          <CardDescription>Atualize seu apelido e foto de perfil</CardDescription>
         </CardHeader>
         <form onSubmit={handleSave}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {error && (
               <div className="flex items-center gap-2 rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -116,6 +117,17 @@ export default function ProfilePage() {
                 Perfil atualizado com sucesso!
               </div>
             )}
+            <div className="flex flex-col items-center gap-1.5">
+              <Label className="self-start">Foto de perfil</Label>
+              <ImageUpload
+                value={photoUrl || null}
+                onChange={url => setPhotoUrl(url ?? '')}
+                folder="avatars"
+                shape="circle"
+                size="lg"
+                placeholder="Sua foto"
+              />
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="nickname">Apelido</Label>
               <Input
@@ -123,16 +135,6 @@ export default function ProfilePage() {
                 value={nickname}
                 onChange={e => setNickname(e.target.value)}
                 placeholder="Seu apelido no bolão"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="photoUrl">URL da foto de perfil</Label>
-              <Input
-                id="photoUrl"
-                type="url"
-                value={photoUrl}
-                onChange={e => setPhotoUrl(e.target.value)}
-                placeholder="https://..."
               />
             </div>
             <Button type="submit" disabled={loading}>

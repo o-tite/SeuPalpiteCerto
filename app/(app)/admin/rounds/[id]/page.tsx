@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, CheckCircle, Trophy } from 'lucide-react'
+import { ArrowLeft, Plus, CheckCircle, Trophy, Pencil } from 'lucide-react'
 
 type Team = { id: string; name: string; logo_url?: string }
 type Result = { home_score: number; away_score: number; result_type: string }
@@ -32,9 +32,22 @@ type Round = {
   round_number: number
   description?: string
   closing_at: string
+  status: 'open' | 'closed' | 'finished'
   isOpen: boolean
   championship: { id: string; name: string }
   matches: Match[]
+}
+
+const statusOptions = [
+  { value: 'open',     label: 'Aberta' },
+  { value: 'closed',   label: 'Fechada' },
+  { value: 'finished', label: 'Finalizada' },
+]
+
+const statusBadge: Record<string, 'default' | 'secondary' | 'outline'> = {
+  open:     'default',
+  closed:   'secondary',
+  finished: 'outline',
 }
 
 export default function AdminRoundDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,6 +56,12 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
   const [round, setRound] = useState<Round | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Edit round form
+  const [showEdit, setShowEdit] = useState(false)
+  const [editForm, setEditForm] = useState({ description: '', closing_at: '', status: 'open' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
 
   // Match form
   const [showMatch, setShowMatch] = useState(false)
@@ -59,6 +78,11 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
     if (res.ok) {
       const data = await res.json()
       setRound(data)
+      setEditForm({
+        description: data.description ?? '',
+        closing_at: data.closing_at ? data.closing_at.slice(0, 16) : '',
+        status: data.status ?? 'open',
+      })
       // Load teams for the championship
       const tRes = await fetch(`/api/championships/${data.championship.id}/teams`)
       if (tRes.ok) setTeams(await tRes.json())
@@ -67,6 +91,25 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
   }
 
   useEffect(() => { load() }, [id])
+
+  const handleSaveRound = async () => {
+    setEditSaving(true)
+    setEditError('')
+    const res = await fetch(`/api/rounds/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: editForm.description || undefined,
+        closing_at: editForm.closing_at ? new Date(editForm.closing_at).toISOString() : undefined,
+        status: editForm.status,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setEditError(data.error ?? 'Erro ao salvar'); setEditSaving(false); return }
+    setRound(data)
+    setShowEdit(false)
+    setEditSaving(false)
+  }
 
   const handleCreateMatch = async () => {
     setSaving(true); setError('')
@@ -112,23 +155,32 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+      <div className="flex items-start gap-3">
+        <Button variant="ghost" size="sm" className="mt-0.5 shrink-0" onClick={() => router.back()}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-primary" />
-            <span className="text-sm text-muted-foreground">{round?.championship?.name}</span>
+            <span className="text-sm text-muted-foreground truncate">{round?.championship?.name}</span>
           </div>
           <h1 className="text-xl font-bold text-foreground">Rodada {round?.round_number}</h1>
-          <p className="text-xs text-muted-foreground">
-            Fecha: {round && new Date(round.closing_at).toLocaleString('pt-BR')}
-            {round && (round.isOpen
-              ? <span className="ml-2 text-primary">(Aberta)</span>
-              : <span className="ml-2">(Encerrada)</span>
-            )}
+          {round?.description && (
+            <p className="text-sm text-muted-foreground">{round.description}</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Encerra: {round && new Date(round.closing_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
           </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {round && (
+            <Badge variant={statusBadge[round.status] ?? 'default'}>
+              {statusOptions.find(s => s.value === round.status)?.label ?? round.status}
+            </Badge>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setShowEdit(true)}>
+            <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
+          </Button>
         </div>
       </div>
 
@@ -203,6 +255,50 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
           ))}
         </div>
       )}
+
+      {/* Edit Round Dialog */}
+      <Dialog open={showEdit} onOpenChange={v => { setShowEdit(v); if (!v) setEditError('') }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Rodada {round?.round_number}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Descrição <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Input
+                placeholder="Ex: Semifinal, Fase de grupos..."
+                value={editForm.description}
+                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Data/hora de encerramento</Label>
+              <Input
+                type="datetime-local"
+                value={editForm.closing_at}
+                onChange={e => setEditForm(f => ({ ...f, closing_at: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">Após esse momento nenhum palpite poderá ser feito.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {editError && <p className="text-sm text-destructive">{editError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowEdit(false)} disabled={editSaving}>Cancelar</Button>
+            <Button onClick={handleSaveRound} disabled={editSaving}>
+              {editSaving ? 'Salvando...' : 'Salvar alterações'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Match Dialog */}
       <Dialog open={showMatch} onOpenChange={setShowMatch}>

@@ -20,6 +20,7 @@ import { ArrowLeft, Plus, Pencil, Trash2, Trophy, Users, ChevronRight, Lock, Clo
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ImageUpload } from '@/components/image-upload'
 
 type Championship = { id: string; name: string; status: string; description?: string }
 type Round = { id: string; round_number: number; description?: string; closing_at: string; isOpen: boolean; matches: { count: number }[] }
@@ -182,8 +183,15 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {teams.map(t => (
                 <Card key={t.id} className="border-border">
-                  <CardContent className="p-3 text-center">
-                    <p className="font-medium text-sm text-foreground">{t.name}</p>
+                  <CardContent className="p-3 flex flex-col items-center gap-2 text-center">
+                    {t.logo_url ? (
+                      <img src={t.logo_url} alt={t.name} className="w-12 h-12 object-contain rounded" />
+                    ) : (
+                      <div className="w-12 h-12 rounded bg-secondary flex items-center justify-center text-xl font-bold text-muted-foreground">
+                        {t.name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <p className="font-medium text-sm text-foreground leading-tight">{t.name}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -263,7 +271,7 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
       </Dialog>
 
       {/* Team dialog */}
-      <Dialog open={showTeam} onOpenChange={setShowTeam}>
+      <Dialog open={showTeam} onOpenChange={v => { setShowTeam(v); if (!v) { setTeamForm({ name: '', logoUrl: '' }); setError('') } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Novo Time</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
@@ -272,9 +280,16 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
               <Label>Nome do time</Label>
               <Input value={teamForm.name} onChange={e => setTeamForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Flamengo" />
             </div>
-            <div className="space-y-1.5">
-              <Label>URL do escudo (opcional)</Label>
-              <Input value={teamForm.logoUrl} onChange={e => setTeamForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="https://..." />
+            <div className="flex flex-col items-center gap-1.5">
+              <Label className="self-start">Escudo do time <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <ImageUpload
+                value={teamForm.logoUrl || null}
+                onChange={url => setTeamForm(f => ({ ...f, logoUrl: url ?? '' }))}
+                folder="teams"
+                shape="square"
+                size="md"
+                placeholder="Escudo"
+              />
             </div>
           </div>
           <DialogFooter>
