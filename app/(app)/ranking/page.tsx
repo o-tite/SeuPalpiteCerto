@@ -32,7 +32,9 @@ type UserEntry = {
 }
 
 type Championship = { id: string; name: string }
-type Round = { id: string; round_number: number; description?: string; status: string }
+type Round = { id: string; round_number: number; description?: string; status: string; championship?: { id: string; name: string } }
+
+const ALL_ROUNDS = '__all__'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -200,7 +202,7 @@ function RankingContent() {
   const [championships, setChampionships] = useState<Championship[]>([])
   const [rounds, setRounds] = useState<Round[]>([])
   const [selectedChampionship, setSelectedChampionship] = useState(searchParams.get('championshipId') ?? '')
-  const [selectedRound, setSelectedRound] = useState('')
+  const [selectedRound, setSelectedRound] = useState(ALL_ROUNDS)
   const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; championship?: Championship; round?: Round } | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -210,7 +212,7 @@ function RankingContent() {
 
   useEffect(() => {
     if (!selectedChampionship) return
-    setSelectedRound('')
+    setSelectedRound(ALL_ROUNDS)
     setRounds([])
     fetch(`/api/championships/${selectedChampionship}/rounds`)
       .then(r => r.ok ? r.json() : [])
@@ -219,8 +221,8 @@ function RankingContent() {
 
   useEffect(() => {
     if (!selectedChampionship) return
-    // só dispara se selectedRound for string não-vazia ou se quisermos o geral
-    const query = selectedRound
+    const isSpecificRound = selectedRound !== ALL_ROUNDS
+    const query = isSpecificRound
       ? `?roundId=${selectedRound}`
       : `?championshipId=${selectedChampionship}`
     setLoading(true)
@@ -231,7 +233,7 @@ function RankingContent() {
       .finally(() => setLoading(false))
   }, [selectedChampionship, selectedRound])
 
-  const hasRoundBets = !!selectedRound
+  const hasRoundBets = selectedRound !== ALL_ROUNDS
 
   return (
     <div className="space-y-4">
@@ -245,7 +247,7 @@ function RankingContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Select
           value={selectedChampionship}
-          onValueChange={v => { setSelectedChampionship(v); setSelectedRound(''); setRankingData(null) }}
+          onValueChange={v => { setSelectedChampionship(v); setSelectedRound(ALL_ROUNDS); setRankingData(null) }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Campeonato" />
@@ -264,7 +266,7 @@ function RankingContent() {
             <SelectValue placeholder="Geral — todas as rodadas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Geral — todas as rodadas</SelectItem>
+            <SelectItem value={ALL_ROUNDS}>Geral — todas as rodadas</SelectItem>
             {rounds.map(r => (
               <SelectItem key={r.id} value={r.id}>
                 Rodada {r.round_number}{r.description ? ` — ${r.description}` : ''}
@@ -279,9 +281,13 @@ function RankingContent() {
         <div className="flex items-center gap-2">
           <Trophy className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-medium text-foreground">
-            {rankingData.championship?.name ?? rankingData.round?.championship?.name}
+            {(rankingData.championship?.name) ??
+             (Array.isArray(rankingData.round?.championship)
+               ? rankingData.round?.championship?.[0]?.name
+               : (rankingData.round?.championship as { name?: string } | undefined)?.name) ??
+             ''}
           </span>
-          {selectedRound && rankingData.round && (
+          {hasRoundBets && rankingData.round && (
             <>
               <span className="text-muted-foreground">·</span>
               <span className="text-sm text-muted-foreground">Rodada {rankingData.round?.round_number}</span>
