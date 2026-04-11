@@ -262,118 +262,156 @@ function MatchBetCard({
 
   return (
     <Card className={cn(
-      'border transition-colors',
-      isOpen && hasBet ? 'border-primary/40 bg-primary/5' : 'border-border'
+      'border transition-colors overflow-hidden',
+      isOpen && hasBet ? 'border-primary/40' : 'border-border'
     )}>
-      <CardContent className="p-4">
-        {/* Teams row — central layout, score inputs on the right */}
-        <div className="flex items-center gap-3">
+      {/* Thin accent bar on top when bet is filled */}
+      {isOpen && hasBet && (
+        <div className="h-0.5 w-full bg-primary" />
+      )}
 
-          {/* Match number */}
-          <span className="text-xs text-muted-foreground w-5 shrink-0 text-center">
-            {match.match_number}
-          </span>
+      <CardContent className="p-0">
 
-          {/* Teams: home — VS — away */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              {/* Home team */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-                <span className="font-semibold text-foreground text-sm leading-tight text-right truncate">
-                  {match.home_team.name}
-                </span>
-                {match.home_team.logo_url && (
-                  <img src={match.home_team.logo_url} alt={match.home_team.name} className="w-6 h-6 object-contain shrink-0" />
-                )}
-              </div>
+        {/* ── LINHA 1: número do jogo + times ── */}
+        <div className="flex items-stretch">
 
-              {/* VS divider */}
-              <span className="text-xs text-muted-foreground shrink-0 px-1">×</span>
-
-              {/* Away team */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                {match.away_team.logo_url && (
-                  <img src={match.away_team.logo_url} alt={match.away_team.name} className="w-6 h-6 object-contain shrink-0" />
-                )}
-                <span className="font-semibold text-foreground text-sm leading-tight truncate">
-                  {match.away_team.name}
-                </span>
-              </div>
-            </div>
-
-            {/* Result row (when available) */}
-            {hasResult && (
-              <div className="flex items-center justify-center gap-1.5 mt-2">
-                <span className="text-xs text-muted-foreground">Resultado oficial:</span>
-                <span className="text-xs font-bold text-foreground bg-secondary px-2 py-0.5 rounded">
-                  {match.result!.home_score} × {match.result!.away_score}
-                </span>
-              </div>
-            )}
+          {/* Número do jogo */}
+          <div className="flex items-center justify-center px-3 bg-secondary/60 border-r border-border shrink-0 min-w-[2.5rem]">
+            <span className="text-xs font-bold text-muted-foreground">{match.match_number}</span>
           </div>
 
-          {/* Right side: inputs or palpite display */}
-          <div className="shrink-0">
-            {isOpen ? (
-              /* Score inputs */
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="99"
-                  className="w-11 h-11 text-center rounded-lg border border-border bg-background text-foreground text-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                  value={bet.home}
-                  onChange={e => onChange(e.target.value, bet.away)}
-                  placeholder="–"
-                />
-                <span className="text-muted-foreground text-sm">–</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  max="99"
-                  className="w-11 h-11 text-center rounded-lg border border-border bg-background text-foreground text-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                  value={bet.away}
-                  onChange={e => onChange(bet.home, e.target.value)}
-                  placeholder="–"
-                />
-              </div>
-            ) : match.myBet ? (
-              /* Locked bet display */
-              <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1 bg-secondary rounded-lg px-3 py-1.5">
-                  <span className="text-base font-bold text-foreground">{match.myBet.home_score}</span>
-                  <span className="text-muted-foreground text-xs">–</span>
-                  <span className="text-base font-bold text-foreground">{match.myBet.away_score}</span>
-                </div>
-                {score && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'text-xs font-bold px-2',
-                      score.points > 0 ? 'border-primary/30 text-primary bg-primary/10' : 'text-muted-foreground'
-                    )}
-                  >
-                    {score.points} pts
-                  </Badge>
-                )}
-              </div>
+          {/* Time da casa */}
+          <div className="flex-1 flex items-center gap-2 px-3 py-3 border-r border-border">
+            {match.home_team.logo_url ? (
+              <img
+                src={match.home_team.logo_url}
+                alt={match.home_team.name}
+                className="w-7 h-7 object-contain shrink-0"
+              />
             ) : (
-              /* No bet */
-              <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1 bg-secondary rounded-lg px-3 py-1.5 opacity-40">
-                  <span className="text-base font-bold text-foreground">–</span>
-                  <span className="text-muted-foreground text-xs">–</span>
-                  <span className="text-base font-bold text-foreground">–</span>
-                </div>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Lock className="w-3 h-3" /> sem palpite
-                </span>
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
+                {match.home_team.name.slice(0, 1)}
+              </div>
+            )}
+            <span className="font-semibold text-foreground text-sm leading-tight">
+              {match.home_team.name}
+            </span>
+          </div>
+
+          {/* Separador central */}
+          <div className="flex items-center justify-center px-2 shrink-0">
+            <span className="text-xs font-bold text-muted-foreground">×</span>
+          </div>
+
+          {/* Time visitante */}
+          <div className="flex-1 flex items-center gap-2 px-3 py-3 border-l border-border justify-end">
+            <span className="font-semibold text-foreground text-sm leading-tight text-right">
+              {match.away_team.name}
+            </span>
+            {match.away_team.logo_url ? (
+              <img
+                src={match.away_team.logo_url}
+                alt={match.away_team.name}
+                className="w-7 h-7 object-contain shrink-0"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
+                {match.away_team.name.slice(0, 1)}
               </div>
             )}
           </div>
         </div>
+
+        {/* Divisor */}
+        <div className="h-px bg-border" />
+
+        {/* ── LINHA 2: inputs / palpite / placar ── */}
+        <div className="flex items-stretch">
+
+          {/* Espaço alinhado com o número do jogo */}
+          <div className="shrink-0 min-w-[2.5rem] bg-secondary/30 border-r border-border" />
+
+          {/* Conteúdo central dos palpites */}
+          <div className="flex-1 flex items-center justify-center gap-3 px-3 py-2.5">
+            {isOpen ? (
+              /* Inputs ativos */
+              <>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="99"
+                  className={cn(
+                    'w-14 h-12 text-center rounded-lg border bg-background text-foreground text-2xl font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary',
+                    bet.home !== '' ? 'border-primary/50 bg-primary/5' : 'border-border'
+                  )}
+                  value={bet.home}
+                  onChange={e => onChange(e.target.value, bet.away)}
+                  placeholder="–"
+                />
+                <div className="flex flex-col items-center gap-0.5 shrink-0">
+                  <span className="text-base font-bold text-muted-foreground">×</span>
+                  {hasResult && (
+                    <span className="text-[10px] text-muted-foreground leading-none">
+                      {match.result!.home_score}–{match.result!.away_score}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max="99"
+                  className={cn(
+                    'w-14 h-12 text-center rounded-lg border bg-background text-foreground text-2xl font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary',
+                    bet.away !== '' ? 'border-primary/50 bg-primary/5' : 'border-border'
+                  )}
+                  value={bet.away}
+                  onChange={e => onChange(bet.home, e.target.value)}
+                  placeholder="–"
+                />
+              </>
+            ) : match.myBet ? (
+              /* Palpite registrado (rodada fechada) */
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-foreground w-8 text-center">{match.myBet.home_score}</span>
+                  <span className="text-base font-bold text-muted-foreground">–</span>
+                  <span className="text-2xl font-bold text-foreground w-8 text-center">{match.myBet.away_score}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {score ? (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'text-xs font-bold px-2.5',
+                        score.points > 0
+                          ? 'border-primary/40 text-primary bg-primary/10'
+                          : 'text-muted-foreground border-border'
+                      )}
+                    >
+                      {score.points} pts
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">aguardando resultado</span>
+                  )}
+                  {hasResult && (
+                    <span className="text-xs text-muted-foreground">
+                      Resultado: {match.result!.home_score}–{match.result!.away_score}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Sem palpite (rodada fechada) */
+              <div className="flex items-center gap-1.5 text-muted-foreground/50 py-1">
+                <Lock className="w-3.5 h-3.5" />
+                <span className="text-sm">sem palpite registrado</span>
+              </div>
+            )}
+          </div>
+        </div>
+
       </CardContent>
     </Card>
   )
