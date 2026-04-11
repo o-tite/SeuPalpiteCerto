@@ -4,16 +4,17 @@ import fs from 'fs';
 import path from 'path';
 
 // Parse Supabase connection string
-const DB_URL = process.env.DATABASE_URL;
+const DB_URL = process.env.POSTGRES_URL;
 
 if (!DB_URL) {
-  console.error('Missing DATABASE_URL environment variable');
+  console.error('Missing POSTGRES_URL environment variable');
   process.exit(1);
 }
 
 async function setupDatabase() {
   const client = new Client({
     connectionString: DB_URL,
+    ssl: { rejectUnauthorized: false },
   });
 
   try {
