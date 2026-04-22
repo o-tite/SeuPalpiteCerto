@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, CheckCircle, Trophy, Pencil } from 'lucide-react'
+import { ArrowLeft, Plus, CheckCircle, Trophy, Pencil, Trash2 } from 'lucide-react'
 import { toDatetimeLocal } from '@/lib/utils'
 
 type Team = { id: string; name: string; logo_url?: string }
@@ -71,6 +71,14 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
   // Result form
   const [resultTarget, setResultTarget] = useState<Match | null>(null)
   const [resultForm, setResultForm] = useState({ homeScore: '', awayScore: '' })
+
+  // Edit match form
+  const [editMatchTarget, setEditMatchTarget] = useState<Match | null>(null)
+  const [editMatchForm, setEditMatchForm] = useState({ homeTeamId: '', awayTeamId: '', matchNumber: '', description: '' })
+
+  // Delete match
+  const [deleteTarget, setDeleteTarget] = useState<Match | null>(null)
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -149,6 +157,38 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
     load(); setSaving(false)
   }
 
+  const handleEditMatch = async () => {
+    if (!editMatchTarget) return
+    setSaving(true); setError('')
+    const res = await fetch(`/api/matches/${editMatchTarget.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        homeTeamId: editMatchForm.homeTeamId,
+        awayTeamId: editMatchForm.awayTeamId,
+        matchNumber: parseInt(editMatchForm.matchNumber),
+        description: editMatchForm.description,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setError(data.error); setSaving(false); return }
+    setEditMatchTarget(null)
+    setEditMatchForm({ homeTeamId: '', awayTeamId: '', matchNumber: '', description: '' })
+    load(); setSaving(false)
+  }
+
+  const handleDeleteMatch = async () => {
+    if (!deleteTarget) return
+    setSaving(true); setError('')
+    const res = await fetch(`/api/matches/${deleteTarget.id}`, {
+      method: 'DELETE',
+    })
+    const data = await res.json()
+    if (!res.ok) { setError(data.error); setSaving(false); return }
+    setDeleteTarget(null)
+    load(); setSaving(false)
+  }
+
   if (loading) return <div className="h-32 bg-secondary rounded animate-pulse" />
 
   const nextMatchNumber = (round?.matches?.length ?? 0) + 1
@@ -221,6 +261,33 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
                   <span className="font-medium text-foreground">{m.away_team.name}</span>
                 </div>
                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7 px-2"
+                      onClick={() => {
+                        setEditMatchTarget(m)
+                        setEditMatchForm({
+                          homeTeamId: m.home_team.id,
+                          awayTeamId: m.away_team.id,
+                          matchNumber: String(m.match_number),
+                          description: m.description || ''
+                        })
+                        setError('')
+                      }}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-7 px-2 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTarget(m)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                   {m.result ? (
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-primary" />
@@ -396,6 +463,84 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
             <Button variant="ghost" onClick={() => setResultTarget(null)}>Cancelar</Button>
             <Button onClick={handleSaveResult} disabled={saving || resultForm.homeScore === '' || resultForm.awayScore === ''}>
               {saving ? 'Salvando...' : 'Confirmar resultado'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Match Dialog */}
+      <Dialog open={editMatchTarget !== null} onOpenChange={() => setEditMatchTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Jogo</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <div className="space-y-1.5">
+              <Label>Time da casa</Label>
+              <Select value={editMatchForm.homeTeamId} onValueChange={v => setEditMatchForm(f => ({ ...f, homeTeamId: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o time da casa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Time visitante</Label>
+              <Select value={editMatchForm.awayTeamId} onValueChange={v => setEditMatchForm(f => ({ ...f, awayTeamId: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o time visitante" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Número do jogo</Label>
+              <Input type="number" min="1" value={editMatchForm.matchNumber} onChange={e => setEditMatchForm(f => ({ ...f, matchNumber: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrição (opcional)</Label>
+              <Input value={editMatchForm.description} onChange={e => setEditMatchForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditMatchTarget(null)}>Cancelar</Button>
+            <Button onClick={handleEditMatch} disabled={saving || !editMatchForm.homeTeamId || !editMatchForm.awayTeamId || !editMatchForm.matchNumber}>
+              {saving ? 'Salvando...' : 'Salvar alterações'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Match Dialog */}
+      <Dialog open={deleteTarget !== null} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Excluir Jogo</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir este jogo?
+            </p>
+            {deleteTarget && (
+              <div className="bg-muted p-3 rounded text-sm">
+                <strong>{deleteTarget.home_team.name} vs {deleteTarget.away_team.name}</strong>
+                {deleteTarget.description && <p className="text-muted-foreground mt-1">{deleteTarget.description}</p>}
+              </div>
+            )}
+            <p className="text-xs text-destructive">
+              Esta ação não pode ser desfeita. O jogo será removido permanentemente.
+            </p>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteMatch} disabled={saving}>
+              {saving ? 'Excluindo...' : 'Excluir jogo'}
             </Button>
           </DialogFooter>
         </DialogContent>
