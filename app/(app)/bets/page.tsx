@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 type Team = { id: string; name: string; logo_url?: string }
 type Result = { home_score: number; away_score: number; result_type: string }
 type MyBet = { id: string; home_score: number; away_score: number; score?: { points: number; exact_match: boolean; winner_match: boolean; draw_match: boolean } }
-type Match = { id: string; match_number: number; home_team: Team; away_team: Team; result?: Result | null; myBet?: MyBet | null; status: string }
+type Match = { id: string; match_number: number; home_team: Team; away_team: Team; description?: string; result?: Result | null; myBet?: MyBet | null; status: string }
 type Round = { id: string; round_number: number; description?: string; closing_at: string; isOpen: boolean; status: string; championship: { id: string; name: string } }
 type Championship = { id: string; name: string }
 
@@ -191,13 +191,17 @@ function BetsContent() {
           {/* Matches */}
           <div className="space-y-3">
             {roundData.matches.map((match) => (
-              <MatchBetCard
-                key={match.id}
-                match={match}
-                bet={bets[match.id] ?? { home: '', away: '' }}
-                isOpen={roundData.isOpen}
-                onChange={(home, away) => setBets(prev => ({ ...prev, [match.id]: { home, away } }))}
-              />
+              <div key={match.id} className="space-y-2">
+                {match.description && (
+                  <p className="text-sm text-muted-foreground px-3">{match.description}</p>
+                )}
+                <MatchBetCard
+                  match={match}
+                  bet={bets[match.id] ?? { home: '', away: '' }}
+                  isOpen={roundData.isOpen}
+                  onChange={(home, away) => setBets(prev => ({ ...prev, [match.id]: { home, away } }))}
+                />
+              </div>
             ))}
           </div>
 

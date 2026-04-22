@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Plus, CheckCircle, Trophy, Pencil } from 'lucide-react'
+import { toDatetimeLocal } from '@/lib/utils'
 
 type Team = { id: string; name: string; logo_url?: string }
 type Result = { home_score: number; away_score: number; result_type: string }
@@ -80,7 +81,7 @@ export default function AdminRoundDetailPage({ params }: { params: Promise<{ id:
       setRound(data)
       setEditForm({
         description: data.description ?? '',
-        closing_at: data.closing_at ? data.closing_at.slice(0, 16) : '',
+        closing_at: data.closing_at ? toDatetimeLocal(data.closing_at) : '',
         status: data.status ?? 'open',
       })
       // Load teams for the championship

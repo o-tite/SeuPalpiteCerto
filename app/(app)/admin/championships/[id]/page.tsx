@@ -16,11 +16,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, Pencil, Trash2, Trophy, Users, ChevronRight, Lock, Clock } from 'lucide-react'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { ArrowLeft, Plus, Pencil, Trash2, Trophy, Users, ChevronRight, Lock, Clock, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ImageUpload } from '@/components/image-upload'
+import { toUtcISOStringFromLocal } from '@/lib/utils'
 
 type Championship = { id: string; name: string; status: string; description?: string }
 type Round = { id: string; round_number: number; description?: string; closing_at: string; isOpen: boolean; matches: { count: number }[] }
@@ -41,6 +44,7 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
   const [showRound, setShowRound] = useState(false)
   const [editRound, setEditRound] = useState<Round | null>(null)
   const [roundForm, setRoundForm] = useState({ roundNumber: '', description: '', closingAt: '' })
+  const [showDatePicker, setShowDatePicker] = useState(false)
   // Team form — criar
   const [showTeam, setShowTeam] = useState(false)
   const [teamForm, setTeamForm] = useState({ name: '', logoUrl: '' })
@@ -52,6 +56,27 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const selectedClosingDate = roundForm.closingAt ? roundForm.closingAt.slice(0, 10) : ''
+  const selectedClosingTime = roundForm.closingAt ? roundForm.closingAt.slice(11, 16) : '00:00'
+  const selectedClosingAtDate = roundForm.closingAt ? new Date(roundForm.closingAt) : undefined
+  const closingAtLabel = roundForm.closingAt
+    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(roundForm.closingAt))
+    : 'Selecionar data e hora'
+  const todayLocalDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+
+  const setClosingDate = (date?: Date) => {
+    if (!date) return
+    const dateIso = date.toISOString().slice(0, 10)
+    setRoundForm(f => ({
+      ...f,
+      closingAt: `${dateIso}T${f.closingAt?.slice(11, 16) ?? '00:00'}`,
+    }))
+  }
+
+  const setClosingTime = (time: string) => {
+    const dateIso = selectedClosingDate || todayLocalDate
+    setRoundForm(f => ({ ...f, closingAt: `${dateIso}T${time}` }))
+  }
 
   const load = async () => {
     const [cRes, rRes, tRes, uRes, eRes] = await Promise.all([
@@ -76,11 +101,15 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
     const res = await fetch(`/api/championships/${id}/rounds`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roundNumber: parseInt(roundForm.roundNumber), description: roundForm.description, closingAt: roundForm.closingAt }),
+      body: JSON.stringify({
+        roundNumber: parseInt(roundForm.roundNumber),
+        description: roundForm.description,
+        closingAt: toUtcISOStringFromLocal(roundForm.closingAt),
+      }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error); setSaving(false); return }
-    setShowRound(false); setRoundForm({ roundNumber: '', description: '', closingAt: '' }); load(); setSaving(false)
+    setShowRound(false); setShowDatePicker(false); setRoundForm({ roundNumber: '', description: '', closingAt: '' }); load(); setSaving(false)
   }
 
   const handleDeleteRound = async (rid: string) => {
@@ -279,7 +308,7 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
       </Tabs>
 
       {/* Round dialog */}
-      <Dialog open={showRound} onOpenChange={setShowRound}>
+      <Dialog open={showRound} onOpenChange={v => { setShowRound(v); if (!v) setShowDatePicker(false) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Nova Rodada</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
@@ -294,11 +323,46 @@ export default function ChampionshipDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="space-y-1.5">
               <Label>Data de fechamento</Label>
-              <Input type="datetime-local" value={roundForm.closingAt} onChange={e => setRoundForm(f => ({ ...f, closingAt: e.target.value }))} />
+              <div className="grid gap-2">
+                <div className="sm:hidden">
+                  <Input type="datetime-local" value={roundForm.closingAt} onChange={e => setRoundForm(f => ({ ...f, closingAt: e.target.value }))} />
+                </div>
+                <div className="hidden sm:block">
+                  <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between px-4 py-3 text-left">
+                        <span className={roundForm.closingAt ? 'text-foreground' : 'text-muted-foreground'}>{closingAtLabel}</span>
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="w-4 h-4" />
+                          <Clock className="w-4 h-4" />
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[min(28rem,100vw)]">
+                      <Calendar
+                        mode="single"
+                        selected={selectedClosingAtDate}
+                        onSelect={setClosingDate}
+                      />
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Input
+                          type="time"
+                          value={selectedClosingTime}
+                          onChange={e => setClosingTime(e.target.value)}
+                        />
+                        <Button variant="secondary" className="sm:ml-auto" onClick={() => setShowDatePicker(false)}>
+                          Feito
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">Selecione a data no calendário e ajuste o horário para finalizar.</p>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowRound(false)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => { setShowRound(false); setShowDatePicker(false) }}>Cancelar</Button>
             <Button onClick={handleCreateRound} disabled={saving || !roundForm.roundNumber || !roundForm.closingAt}>
               {saving ? 'Criando...' : 'Criar'}
             </Button>
