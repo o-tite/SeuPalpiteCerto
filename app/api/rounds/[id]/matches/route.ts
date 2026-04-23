@@ -37,6 +37,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (homeTeamId === awayTeamId) return apiError('Os times devem ser diferentes')
 
     const supabase = createServiceClient()
+
+    // Validate teams belong to the championship of this round
+    const { data: round, error: roundError } = await supabase
+      .from('rounds')
+      .select('championship_id')
+      .eq('id', id)
+      .single()
+
+    if (roundError || !round) return apiError('Rodada não encontrada', 404)
+
+    const { count: teamsCount, error: teamsError } = await supabase
+      .from('teams')
+      .select('*', { count: 'exact', head: true })
+      .eq('championship_id', round.championship_id)
+      .in('id', [homeTeamId, awayTeamId])
+
+    if (teamsError) return apiError('Erro ao validar times', 500)
+    if (teamsCount !== 2) return apiError('Os times devem pertencer ao campeonato desta rodada', 400)
+
     const { data, error: dbError } = await supabase
       .from('matches')
       .insert({

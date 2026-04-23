@@ -34,8 +34,7 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/dashboard')
-      router.refresh()
+      router.replace('/dashboard')
     } catch {
       setError('Erro de conexão. Tente novamente.')
     } finally {

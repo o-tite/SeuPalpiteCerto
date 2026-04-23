@@ -71,6 +71,8 @@ export function setSessionCookie(response: NextResponse, token: string) {
 export function clearSessionCookie(response: NextResponse) {
   response.cookies.set(SESSION_COOKIE, '', {
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     maxAge: 0,
     path: '/',
   })

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (bets && bets.length > 0) {
       const scoreRows = bets.map((bet: { id: string; home_score: number; away_score: number }) => {
-        const { points, exactMatch, winnerMatch, drawMatch } = calcScore(
+        const { points, exactMatch, winnerMatch, drawMatch, homeGoalsMatch, awayGoalsMatch } = calcScore(
           bet.home_score,
           bet.away_score,
           homeScore,
@@ -71,6 +71,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           exact_match: exactMatch,
           winner_match: winnerMatch,
           draw_match: drawMatch,
+          home_goals_match: homeGoalsMatch,
+          away_goals_match: awayGoalsMatch,
           updated_at: new Date().toISOString(),
         }
       })

@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
       .eq('email', email.toLowerCase().trim())
       .single()
 
-    if (!user) {
+    // Always verify password first to avoid user enumeration
+    const valid = user ? await bcrypt.compare(password, user.password_hash) : false
+    if (!user || !valid) {
       return apiError('Email ou senha inválidos', 401)
     }
 
@@ -31,12 +33,6 @@ export async function POST(request: NextRequest) {
     }
     if (user.status === 'blocked' || user.status === 'inactive') {
       return apiError('Sua conta está bloqueada ou inativa', 403)
-    }
-
-    // Verify password
-    const valid = await bcrypt.compare(password, user.password_hash)
-    if (!valid) {
-      return apiError('Email ou senha inválidos', 401)
     }
 
     // Enforce single session per user: delete existing session

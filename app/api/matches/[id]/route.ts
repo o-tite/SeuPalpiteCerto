@@ -80,6 +80,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (fetchError) return apiError('Jogo não encontrado', 404)
 
+    // Check if match has a result
+    const { count: resultCount, error: resultCountError } = await supabase
+      .from('results')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', id)
+
+    if (resultCountError) return apiError('Erro ao verificar resultado', 500)
+    if (resultCount && resultCount > 0) return apiError('Não é possível excluir jogo com resultado registrado', 409)
+
     // Check if match has bets
     const { count, error: countError } = await supabase
       .from('bets')

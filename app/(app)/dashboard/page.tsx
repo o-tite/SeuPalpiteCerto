@@ -47,10 +47,12 @@ export default function DashboardPage() {
             fetch(`/api/championships/${c.id}/rounds`).then(r => r.ok ? r.json() : [])
           )
           const allRounds = await Promise.all(roundsPromises)
-          const flat: Round[] = allRounds.flat().map((r: Round, i: number) => ({
-            ...r,
-            championship: { id: data[Math.floor(i / 10)]?.id, name: data[Math.floor(i / 10)]?.name },
-          }))
+          const flat: Round[] = allRounds.flatMap((rounds: Round[], idx: number) =>
+            rounds.map((r: Round) => ({
+              ...r,
+              championship: { id: data[idx]?.id, name: data[idx]?.name },
+            }))
+          )
           setOpenRounds(flat.filter((r: Round) => r.isOpen).slice(0, 6))
         }
       } finally {

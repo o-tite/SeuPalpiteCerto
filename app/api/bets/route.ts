@@ -43,6 +43,16 @@ export async function POST(request: NextRequest) {
       return apiError('Um ou mais jogos não pertencem a esta rodada', 400)
     }
 
+    // Validate scores
+    for (const b of bets as { matchId: string; homeScore: number; awayScore: number }[]) {
+      if (typeof b.homeScore !== 'number' || typeof b.awayScore !== 'number') {
+        return apiError('Placar deve ser um número', 400)
+      }
+      if (b.homeScore < 0 || b.awayScore < 0) {
+        return apiError('Placar não pode ser negativo', 400)
+      }
+    }
+
     // Upsert bets
     const betRows = bets.map((b: { matchId: string; homeScore: number; awayScore: number }) => ({
       user_id: user!.id,
