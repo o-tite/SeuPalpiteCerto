@@ -33,14 +33,24 @@ function BetsContent() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch('/api/championships').then(r => r.ok ? r.json() : []).then(setChampionships)
+    fetch('/api/championships').then(r => r.ok ? r.json() : []).then(data => {
+      setChampionships(data)
+      setSelectedChampionship(prev => prev || (data.length > 0 ? data[0].id : ''))
+    })
   }, [])
 
   useEffect(() => {
     if (selectedChampionship) {
       fetch(`/api/championships/${selectedChampionship}/rounds`)
         .then(r => r.ok ? r.json() : [])
-        .then(setRounds)
+        .then(data => {
+          setRounds(data)
+          setSelectedRound(prev => {
+            if (prev) return prev
+            const openRound = data.find((r: Round) => r.isOpen) ?? data[0]
+            return openRound ? openRound.id : ''
+          })
+        })
     }
   }, [selectedChampionship])
 
