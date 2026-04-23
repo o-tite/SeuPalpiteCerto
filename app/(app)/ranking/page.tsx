@@ -207,7 +207,10 @@ function RankingContent() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetch('/api/championships').then(r => r.ok ? r.json() : []).then(setChampionships)
+    fetch('/api/championships').then(r => r.ok ? r.json() : []).then(data => {
+      setChampionships(data)
+      setSelectedChampionship(prev => prev || (data.length > 0 ? data[0].id : ''))
+    })
   }, [])
 
   useEffect(() => {
