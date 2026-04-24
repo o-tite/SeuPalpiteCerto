@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Trophy, Medal, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trophy, Medal, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type BetEntry = {
@@ -32,7 +32,7 @@ type UserEntry = {
 }
 
 type Championship = { id: string; name: string }
-type Round = { id: string; round_number: number; description?: string; status: string; championship?: { id: string; name: string } }
+type Round = { id: string; round_number: number; description?: string; status: string; closing_at?: string; championship?: { id: string; name: string } }
 
 const ALL_ROUNDS = '__all__'
 
@@ -63,10 +63,10 @@ function positionIcon(pos: number) {
 
 // ─── subcomponents ──────────────────────────────────────────────────────────
 
-function RankingRow({ entry, isMe, hasRoundBets }: { entry: UserEntry; isMe: boolean; hasRoundBets: boolean }) {
+function RankingRow({ entry, isMe, hasRoundBets, betsVisible }: { entry: UserEntry; isMe: boolean; hasRoundBets: boolean; betsVisible: boolean }) {
   const [open, setOpen] = useState(false)
   const initials = entry.user.nickname?.slice(0, 2).toUpperCase() ?? '??'
-  const canExpand = hasRoundBets && (entry.bets?.length ?? 0) > 0
+  const canExpand = hasRoundBets && betsVisible && (entry.bets?.length ?? 0) > 0
 
   return (
     <div className="rounded-xl border overflow-hidden transition-colors"
@@ -203,7 +203,7 @@ function RankingContent() {
   const [rounds, setRounds] = useState<Round[]>([])
   const [selectedChampionship, setSelectedChampionship] = useState(searchParams.get('championshipId') ?? '')
   const [selectedRound, setSelectedRound] = useState(ALL_ROUNDS)
-  const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; championship?: Championship; round?: Round } | null>(null)
+  const [rankingData, setRankingData] = useState<{ rankings: UserEntry[]; betsVisible?: boolean; championship?: Championship; round?: Round } | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -237,6 +237,7 @@ function RankingContent() {
   }, [selectedChampionship, selectedRound])
 
   const hasRoundBets = selectedRound !== ALL_ROUNDS
+  const betsVisible = rankingData?.betsVisible ?? false
 
   return (
     <div className="space-y-4">
@@ -334,6 +335,16 @@ function RankingContent() {
         </Card>
       )}
 
+      {/* Bets locked notice */}
+      {!loading && rankingData && hasRoundBets && !betsVisible && (
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-3">
+          <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+          <p className="text-sm text-muted-foreground">
+            Os palpites dos jogadores serão exibidos após o encerramento do prazo de apostas desta rodada.
+          </p>
+        </div>
+      )}
+
       {/* Rankings list */}
       {!loading && rankingData && rankingData.rankings.length > 0 && (
         <div className="space-y-2">
@@ -343,6 +354,7 @@ function RankingContent() {
               entry={entry}
               isMe={entry.user.id === user?.id}
               hasRoundBets={hasRoundBets}
+              betsVisible={betsVisible}
             />
           ))}
         </div>

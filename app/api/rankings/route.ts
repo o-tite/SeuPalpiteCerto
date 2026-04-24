@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess, requireAuth } from '@/lib/api'
+import { closeExpiredRound } from '@/lib/round'
 import { NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -33,6 +34,9 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!round) return apiError('Rodada não encontrada', 404)
+
+    const roundStatus = await closeExpiredRound(supabase, roundId, round.closing_at, round.status)
+    const betsVisible = roundStatus !== 'open'
 
     // Participantes inscritos no campeonato desta rodada (base do ranking)
     const enrolledUsers = await getEnrolledUsers(round.championship.id)
@@ -91,14 +95,14 @@ export async function GET(request: NextRequest) {
       }
       userMap[uid].totalPoints += scoreRaw?.points ?? 0
       if (scoreRaw?.exact_match) userMap[uid].exactMatches++
-      userMap[uid].bets.push(b)
+      if (betsVisible) userMap[uid].bets.push(b)
     })
 
     const rankings = Object.values(userMap)
       .sort((a, b) => b.totalPoints - a.totalPoints || b.exactMatches - a.exactMatches)
       .map((entry, i) => ({ position: i + 1, ...entry }))
 
-    return apiSuccess({ round, rankings })
+    return apiSuccess({ round: { ...round, status: roundStatus }, betsVisible, rankings })
   }
 
   if (championshipId) {
